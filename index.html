@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CIS 565 – Grading Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --dark-teal:  #1A535C;
+      --bright-teal:#4ECDC4;
+      --coral:      #FF6B6B;
+      --yellow:     #FFE66D;
+      --bg:         #f0f7f7;
+      --surface:    #ffffff;
+      --panel:      #eaf6f5;
+      --border:     #c8e6e4;
+      --muted:      #6a9ea8;
+      --muted2:     #a8cdd2;
+      --text:       #1a2e32;
+      --shadow:     0 2px 12px rgba(26,83,92,0.08);
+      --shadow-lg:  0 8px 32px rgba(26,83,92,0.13);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    /* ── LOGIN ── */
+    #login-screen {
+      position: fixed; inset: 0;
+      background: linear-gradient(145deg, #e8f4f1 0%, #f4f7f6 50%, #fef4f2 100%);
+      display: flex; align-items: center; justify-content: center; z-index: 100;
+    }
+    .login-box { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 52px 56px; width: 420px; box-shadow: var(--shadow-lg); }
+    .login-mark { width: 44px; height: 44px; background: var(--dark-teal); border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-bottom: 20px; font-size: 20px; }
+    .login-eyebrow { font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--dark-teal); margin-bottom: 8px; font-weight: 700; }
+    .login-title { font-family: 'Lora', serif; font-size: 28px; color: var(--dark-teal); margin-bottom: 6px; }
+    .login-sub { font-size: 14px; color: var(--muted); margin-bottom: 36px; line-height: 1.5; }
+    .login-box label { display: block; font-size: 12px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+    .login-box input { width: 100%; background: var(--panel); border: 1.5px solid var(--border); border-radius: 8px; padding: 12px 16px; color: var(--text); font-family: 'Inter', sans-serif; font-size: 15px; outline: none; margin-bottom: 24px; transition: border-color 0.2s; }
+    .login-box input:focus { border-color: var(--bright-teal); }
+    .login-btn { width: 100%; background: var(--dark-teal); color: #fff; border: none; border-radius: 8px; padding: 14px; font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 700; cursor: pointer; transition: background 0.2s; letter-spacing: 0.04em; }
+    .login-btn:hover { background: #133e45; }
+    .login-error { color: var(--coral); font-size: 13px; margin-top: 14px; display: none; text-align: center; }
+
+    /* ── APP SHELL ── */
+    #app { display: none; height: 100vh; }
+    #app.visible { display: flex; }
+
+    /* ── SIDEBAR ── */
+    .sidebar { width: 242px; min-width: 242px; background: var(--dark-teal); display: flex; flex-direction: column; overflow-y: auto; }
+    .sidebar-header { padding: 26px 20px 20px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+    .sidebar-logo { font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--bright-teal); margin-bottom: 8px; font-weight: 700; }
+    .sidebar-title { font-family: 'Lora', serif; font-size: 21px; color: #fff; line-height: 1.25; font-weight: 600; }
+    .sidebar-subtitle { font-size: 13px; color: rgba(255,255,255,0.5); margin-top: 5px; }
+    .sidebar-section-label { font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(255,255,255,0.3); padding: 18px 20px 8px; font-weight: 700; }
+    .lab-item { display: flex; align-items: center; gap: 9px; padding: 9px 20px; cursor: pointer; font-size: 13.5px; color: rgba(255,255,255,0.55); border-left: 3px solid transparent; line-height: 1.3; transition: all 0.15s; }
+    .lab-item:hover { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.85); }
+    .lab-item.active { background: rgba(78,205,196,0.18); color: #fff; border-left-color: var(--bright-teal); font-weight: 600; }
+    .lab-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+    .lab-item.has-data .lab-dot { background: var(--bright-teal); }
+    .lab-item:not(.has-data) .lab-dot { background: rgba(255,255,255,0.2); }
+    .lab-count { margin-left: auto; font-size: 11px; background: rgba(78,205,196,0.25); color: var(--bright-teal); border-radius: 10px; padding: 1px 8px; font-weight: 700; flex-shrink: 0; }
+    .sidebar-footer { margin-top: auto; padding: 14px 20px; border-top: 1px solid rgba(255,255,255,0.08); font-size: 12px; color: rgba(255,255,255,0.3); display: flex; align-items: center; justify-content: space-between; }
+    .logout-btn { font-size: 12px; color: rgba(255,255,255,0.3); background: none; border: none; cursor: pointer; transition: color 0.2s; }
+    .logout-btn:hover { color: var(--coral); }
+
+    /* ── MAIN ── */
+    .main { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
+
+    /* ── TOPBAR ── */
+    .topbar { padding: 28px 40px 22px; border-bottom: 1px solid var(--border); background: var(--surface); display: flex; align-items: flex-end; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+    .topbar-eyebrow { font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase; color: #3ab8b0; font-weight: 700; margin-bottom: 6px; }
+    .topbar-title { font-family: 'Lora', serif; font-size: 26px; color: var(--dark-teal); font-weight: 600; }
+    .topbar-meta { font-size: 13px; color: var(--coral); margin-top: 5px; font-weight: 500; }
+    .topbar-stats { display: flex; gap: 12px; }
+    .stat-chip { border-radius: 12px; padding: 12px 22px; text-align: center; min-width: 90px; border: 1.5px solid; }
+    .stat-chip .num { font-family: 'Lora', serif; font-size: 26px; display: block; font-weight: 600; }
+    .stat-chip .lbl { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 700; }
+    .stat-chip.submitted { background: #fff2f2; border-color: #ffc5c5; }
+    .stat-chip.submitted .num, .stat-chip.submitted .lbl { color: var(--coral); }
+    .stat-chip.graded-chip { background: var(--panel); border-color: var(--border); }
+    .stat-chip.graded-chip .num { color: var(--dark-teal); }
+    .stat-chip.graded-chip .lbl { color: var(--muted); }
+
+    /* ── HINT ── */
+    .hint-banner { margin: 24px 40px 0; background: #fffbe6; border: 1.5px solid var(--yellow); border-radius: 8px; padding: 12px 18px; display: flex; align-items: center; gap: 10px; font-size: 13px; color: #7a6200; }
+    .hint-dismiss { margin-left: auto; background: none; border: none; color: var(--muted2); cursor: pointer; font-size: 18px; line-height: 1; }
+
+    /* ── LOADING / EMPTY ── */
+    .state-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; padding: 80px 40px; text-align: center; gap: 14px; }
+    .state-screen h2 { font-family: 'Lora', serif; font-size: 22px; color: var(--dark-teal); font-weight: normal; }
+    .state-screen p { font-size: 14px; color: var(--muted); max-width: 360px; line-height: 1.7; }
+    .spinner { width: 36px; height: 36px; border: 3px solid var(--border); border-top-color: var(--bright-teal); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .state-line { width: 40px; height: 2px; background: var(--border); border-radius: 2px; }
+    .state-week { font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--bright-teal); font-weight: 600; }
+
+    /* ── SUBMISSIONS ── */
+    .submissions-area { padding: 20px 40px 40px; display: flex; flex-direction: column; gap: 14px; }
+
+    /* ── CARD ── */
+    .submission-card { background: var(--surface); border: 1.5px solid var(--border); border-left: 4px solid var(--border); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow); transition: box-shadow 0.2s; }
+    .submission-card:hover { box-shadow: var(--shadow-lg); }
+    .card-header { padding: 18px 24px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none; transition: background 0.15s; }
+    .card-header:hover { background: var(--panel); }
+    .student-info { display: flex; align-items: center; gap: 14px; }
+    .avatar { width: 42px; height: 42px; border-radius: 50%; background: linear-gradient(135deg, var(--bright-teal), var(--dark-teal)); display: flex; align-items: center; justify-content: center; font-family: 'Lora', serif; font-size: 15px; color: #fff; font-weight: 600; flex-shrink: 0; }
+    .student-name { font-size: 15px; font-weight: 700; color: var(--dark-teal); }
+    .student-meta { font-size: 12px; margin-top: 3px; }
+    .student-meta .email { color: #7a6fa8; }
+    .student-meta .timestamp { color: #2a9d96; }
+    .card-header-right { display: flex; align-items: center; gap: 12px; }
+    .grade-badge { background: #fff2f2; color: var(--coral); border: 1.5px solid #ffc5c5; border-radius: 6px; padding: 5px 14px; font-size: 13px; font-weight: 600; }
+    .grade-badge.graded { background: #e6faf9; color: var(--dark-teal); border-color: var(--bright-teal); }
+    .code-tag { font-size: 11px; color: var(--muted); font-family: monospace; background: var(--panel); padding: 4px 9px; border-radius: 4px; border: 1px solid var(--border); }
+    .expand-hint { font-size: 12.5px; color: var(--muted); font-style: italic; display: flex; align-items: center; gap: 5px; white-space: nowrap; }
+    .chevron { color: var(--dark-teal); font-size: 12px; font-style: normal; font-weight: 700; transition: transform 0.2s; display: inline-block; }
+    .chevron.open { transform: rotate(180deg); }
+
+    /* ── CARD BODY ── */
+    .card-body { display: none; border-top: 1.5px solid var(--border); }
+    .card-body.open { display: block; }
+    .card-body-inner { padding: 0 24px 24px; }
+    .responses-grid { display: flex; flex-direction: column; }
+    .response-item { padding: 16px 0; border-bottom: 1px solid var(--border); }
+    .response-item:last-child { border-bottom: none; }
+    .response-q-label { font-size: 11px; font-weight: 700; color: var(--coral); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px; }
+    .response-q-text { font-size: 14px; color: #4a7a85; font-style: italic; margin-bottom: 10px; line-height: 1.5; }
+    .response-answer { font-size: 14px; color: var(--text); line-height: 1.75; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; }
+    .response-answer.no-response { color: var(--muted2); font-style: italic; }
+
+    /* ── GRADING PANEL ── */
+    .grading-panel { margin-top: 22px; padding-top: 22px; border-top: 2px dashed var(--border); display: grid; grid-template-columns: 170px 1fr; gap: 20px; align-items: start; }
+    .grading-label { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+    .grade-input { width: 100%; background: var(--panel); border: 1.5px solid var(--border); border-radius: 8px; padding: 10px 14px; color: var(--text); font-family: 'Inter', sans-serif; font-size: 14px; outline: none; transition: border-color 0.2s; }
+    .grade-input:focus { border-color: var(--bright-teal); }
+    .notes-input { width: 100%; background: var(--panel); border: 1.5px solid var(--border); border-radius: 8px; padding: 10px 14px; color: var(--text); font-family: 'Inter', sans-serif; font-size: 14px; outline: none; resize: vertical; min-height: 90px; line-height: 1.6; transition: border-color 0.2s; }
+    .notes-input:focus { border-color: var(--bright-teal); }
+    .grading-actions { margin-top: 16px; display: flex; align-items: center; gap: 14px; }
+    .save-btn { background: var(--dark-teal); color: #fff; border: none; border-radius: 8px; padding: 11px 28px; font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 700; cursor: pointer; transition: background 0.2s; letter-spacing: 0.03em; }
+    .save-btn:hover { background: #133e45; }
+    .save-btn:disabled { opacity: 0.6; cursor: default; }
+    .save-confirm { font-size: 13px; color: var(--dark-teal); opacity: 0; transition: opacity 0.3s; }
+    .save-confirm.show { opacity: 1; }
+    .save-error { font-size: 13px; color: var(--coral); opacity: 0; transition: opacity 0.3s; }
+    .save-error.show { opacity: 1; }
+
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<!-- ══ LOGIN ══ -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-mark">🔒</div>
+    <div class="login-eyebrow">CIS 565 · Instructor Access</div>
+    <div class="login-title">Grading Dashboard</div>
+    <div class="login-sub">Cybersecurity & Data Analysis — Instructor view only.</div>
+    <label for="pwd">Password</label>
+    <input type="password" id="pwd" placeholder="Enter password" onkeydown="if(event.key==='Enter') tryLogin()"/>
+    <button class="login-btn" onclick="tryLogin()">Sign In →</button>
+    <div class="login-error" id="login-error">Incorrect password. Please try again.</div>
+  </div>
+</div>
+
+<!-- ══ APP ══ -->
+<div id="app">
+  <nav class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">CIS 565</div>
+      <div class="sidebar-title">Grading Dashboard</div>
+      <div class="sidebar-subtitle">Cybersecurity & Data Analysis</div>
+    </div>
+    <div class="sidebar-section-label">Weekly Labs</div>
+    <div id="lab-list"></div>
+    <div class="sidebar-footer">
+      <span>Instructor</span>
+      <button class="logout-btn" onclick="logout()">Sign out</button>
+    </div>
+  </nav>
+  <div class="main" id="main-panel"></div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════
+// CONFIGURATION
+// ══════════════════════════════════════════════════════
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwumaW_6XmXN7qTKohTGiLusmQ4Eh9Yn8qI94gduWN8aBrCDtqTy8fYt5z65kPvPsj4vg/exec';
+const PASSWORD = 'password'; // ← change before going live
+
+// ══════════════════════════════════════════════════════
+// LAB DEFINITIONS
+// ══════════════════════════════════════════════════════
+const LABS = [
+  { id: 1,  title: "What is Data Science?",              subtitle: "Concepts, Vocabulary & Analytical Mindset",    live: true  },
+  { id: 2,  title: "Data Types, Quality & Reality",      subtitle: "What Real-World Data Looks Like",              live: false },
+  { id: 3,  title: "Cybersecurity as a Data Problem",    subtitle: "Data Collection & Security Monitoring",        live: false },
+  { id: 4,  title: "Detection Challenges & Monitoring",  subtitle: "Signal vs. Noise & Operational Realities",     live: false },
+  { id: 5,  title: "Data Cleaning in Practice",          subtitle: "Transforming Dirty Data into Reliable Inputs", live: false },
+  { id: 6,  title: "Exploratory Data Analysis",          subtitle: "Summarizing, Filtering & Visualizing Data",    live: false },
+  { id: 7,  title: "Pattern Recognition & Anomalies",    subtitle: "Identifying Outliers in Security Datasets",    live: false },
+  { id: 8,  title: "Correlation & Causation",            subtitle: "Drawing Defensible Conclusions from Data",     live: false },
+  { id: 9,  title: "Probability & Base Rate Fallacy",    subtitle: "Statistics in Detection & Decision-Making",    live: false },
+  { id: 10, title: "Network Data & Traffic Analysis",    subtitle: "Reading and Interpreting NetFlow Records",     live: false },
+  { id: 11, title: "Threat Hunting with Data",           subtitle: "Hypothesis-Driven Investigation Techniques",   live: false },
+  { id: 12, title: "Security Visualization",             subtitle: "Communicating Findings to Stakeholders",       live: false },
+  { id: 13, title: "Reporting & Documentation",          subtitle: "Writing Defensible Analytical Reports",        live: false },
+  { id: 14, title: "Capstone: Full Threat Analysis",     subtitle: "Comprehensive Assessment & Reflection",        live: false },
+];
+
+const QUESTIONS = [
+  { key: "q_p1a", label: "Part 1A", text: "How many total records are in the dataset?" },
+  { key: "q_p1b", label: "Part 1B", text: "How many unique users are in the dataset?" },
+  { key: "q_p1c", label: "Part 1C", text: "How many successful logins and how many failed logins are in the dataset?" },
+  { key: "q_p2a", label: "Part 2A", text: "Who are the top 3 usernames with the highest number of failed login attempts? Why might a high number of failed attempts be suspicious?" },
+  { key: "q_p2b", label: "Part 2B", text: "What is the most frequent IP address and how many times does it appear? Is it associated mostly with failures or successes? Does high frequency automatically mean malicious behavior?" },
+  { key: "q_p2c", label: "Part 2C", text: "How many logins occurred outside business hours? Were they mostly successes or failures, and were they associated with specific users? Is after-hours access automatically suspicious? What contextual information would you need before escalating?" },
+  { key: "q_p2d", label: "Part 2D", text: "Did you find any user with multiple failures followed by a success? Describe the pattern you found. Does this pattern suggest compromise, or could it have a benign explanation?" },
+  { key: "q_p3a", label: "Part 3A", text: "What patterns stand out to you in this dataset?" },
+  { key: "q_p3b", label: "Part 3B", text: "If you were a security analyst, which activity would you investigate first? And why?" },
+  { key: "q_p3c", label: "Part 3C", text: "What additional data would help you make a stronger decision?" },
+  { key: "q_p4a", label: "Part 4A", text: "Can you conclude with certainty that any account was compromised? Why or why not?" },
+  { key: "q_p4b", label: "Part 4B", text: "What assumptions are you making when interpreting this data?" },
+  { key: "q_p4c", label: "Part 4C", text: "How could missing or incomplete data affect your conclusions?" },
+];
+
+// ══════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════
+let currentLab = 1;
+let hintDismissed = false;
+let submissionsCache = {}; // cache per lab id
+
+// ══════════════════════════════════════════════════════
+// AUTH
+// ══════════════════════════════════════════════════════
+function tryLogin() {
+  const val = document.getElementById('pwd').value;
+  if (val === PASSWORD) {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').classList.add('visible');
+    buildSidebar();
+    loadLab(1);
+  } else {
+    document.getElementById('login-error').style.display = 'block';
+  }
+}
+
+function logout() {
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('app').classList.remove('visible');
+  document.getElementById('pwd').value = '';
+  submissionsCache = {};
+}
+
+// ══════════════════════════════════════════════════════
+// SIDEBAR
+// ══════════════════════════════════════════════════════
+function buildSidebar() {
+  const list = document.getElementById('lab-list');
+  list.innerHTML = '';
+  LABS.forEach(lab => {
+    const el = document.createElement('div');
+    el.className = `lab-item${lab.live ? ' has-data' : ''}`;
+    el.id = `lab-item-${lab.id}`;
+    el.onclick = () => loadLab(lab.id);
+    el.innerHTML = `<span class="lab-dot"></span>Lab ${lab.id} – ${labShortTitle(lab.title)}`;
+    if (lab.live) el.innerHTML += `<span class="lab-count" id="count-${lab.id}">–</span>`;
+    list.appendChild(el);
+  });
+}
+
+function labShortTitle(title) {
+  const shorts = {
+    "What is Data Science?": "Data Science",
+    "Data Types, Quality & Reality": "Data Quality",
+    "Cybersecurity as a Data Problem": "Cyber Data",
+    "Detection Challenges & Monitoring": "Detection",
+    "Data Cleaning in Practice": "Cleaning",
+    "Exploratory Data Analysis": "EDA",
+    "Pattern Recognition & Anomalies": "Patterns",
+    "Correlation & Causation": "Correlation",
+    "Probability & Base Rate Fallacy": "Probability",
+    "Network Data & Traffic Analysis": "Network Data",
+    "Threat Hunting with Data": "Threat Hunting",
+    "Security Visualization": "Visualization",
+    "Reporting & Documentation": "Reporting",
+    "Capstone: Full Threat Analysis": "Capstone",
+  };
+  return shorts[title] || title;
+}
+
+function setActiveLabItem(id) {
+  document.querySelectorAll('.lab-item').forEach(el => el.classList.remove('active'));
+  const item = document.getElementById(`lab-item-${id}`);
+  if (item) item.classList.add('active');
+}
+
+// ══════════════════════════════════════════════════════
+// LOAD LAB
+// ══════════════════════════════════════════════════════
+async function loadLab(id) {
+  currentLab = id;
+  setActiveLabItem(id);
+  const lab = LABS.find(l => l.id === id);
+  const main = document.getElementById('main-panel');
+
+  if (!lab.live) {
+    main.innerHTML = `
+      <div class="state-screen">
+        <div class="state-week">Lab ${id}</div>
+        <div class="state-line"></div>
+        <h2>${lab.title}</h2>
+        <p>${lab.subtitle} — No submissions yet. This section will populate once the lab goes live.</p>
+      </div>`;
+    return;
+  }
+
+  // Show loading state
+  main.innerHTML = `
+    <div class="state-screen">
+      <div class="spinner"></div>
+      <p>Loading submissions…</p>
+    </div>`;
+
+  try {
+    // Use cache if available
+    let submissions = submissionsCache[id];
+    if (!submissions) {
+      const url = `${APPS_SCRIPT_URL}?action=getSubmissions&lab=${id}`;
+      const res  = await fetch(url);
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || 'Unknown error');
+      submissions = data.submissions;
+      submissionsCache[id] = submissions;
+    }
+
+    renderLab(lab, submissions);
+  } catch (err) {
+    main.innerHTML = `
+      <div class="state-screen">
+        <h2>Could not load submissions</h2>
+        <p>${err.message}</p>
+        <p style="color:var(--muted);font-size:12px;margin-top:8px;">Make sure the Apps Script is deployed and the GradingAPI.gs file has been added to the project.</p>
+      </div>`;
+  }
+}
+
+// ══════════════════════════════════════════════════════
+// RENDER LAB
+// ══════════════════════════════════════════════════════
+function renderLab(lab, submissions) {
+  const main = document.getElementById('main-panel');
+  const graded = submissions.filter(s => s.grade).length;
+
+  // Update sidebar count
+  const countEl = document.getElementById(`count-${lab.id}`);
+  if (countEl) countEl.textContent = submissions.length;
+
+  main.innerHTML = `
+    <div class="topbar">
+      <div>
+        <div class="topbar-eyebrow">Lab ${lab.id} · ${lab.subtitle}</div>
+        <div class="topbar-title">${lab.title}</div>
+        <div class="topbar-meta" id="submission-meta">${submissions.length} submission${submissions.length !== 1 ? 's' : ''} received</div>
+      </div>
+      <div class="topbar-stats">
+        <div class="stat-chip submitted"><span class="num" id="stat-submitted">${submissions.length}</span><span class="lbl">Submitted</span></div>
+        <div class="stat-chip graded-chip"><span class="num" id="stat-graded">${graded}</span><span class="lbl">Graded</span></div>
+      </div>
+    </div>
+    ${!hintDismissed ? `
+    <div class="hint-banner" id="hint-banner">
+      <span>💡</span>
+      <span>Click on any student row to expand their full submission. Enter a grade and notes at the bottom of each card, then click Save.</span>
+      <button class="hint-dismiss" onclick="dismissHint()">×</button>
+    </div>` : ''}
+    <div class="submissions-area" id="submissions-area"></div>`;
+
+  if (submissions.length === 0) {
+    document.getElementById('submissions-area').innerHTML = `
+      <div class="state-screen">
+        <h2>No submissions yet</h2>
+        <p>Students haven't submitted Lab ${lab.id} yet. Check back later.</p>
+      </div>`;
+    return;
+  }
+
+  const area = document.getElementById('submissions-area');
+  submissions.forEach(s => area.appendChild(buildCard(s)));
+}
+
+// ══════════════════════════════════════════════════════
+// BUILD CARD
+// ══════════════════════════════════════════════════════
+function buildCard(s) {
+  const initials = (s.student_name || '??').split(' ').map(w => w[0]).join('').toUpperCase().slice(0,2);
+  const isGraded = !!s.grade;
+  const ts = s.timestamp ? new Date(s.timestamp).toLocaleString() : 'Unknown time';
+
+  const card = document.createElement('div');
+  card.className = 'submission-card';
+  card.id = `card-${s.confirmation_code}`;
+
+  card.innerHTML = `
+    <div class="card-header" onclick="toggleCard('${s.confirmation_code}')">
+      <div class="student-info">
+        <div class="avatar">${initials}</div>
+        <div>
+          <div class="student-name">${s.student_name || 'Unknown Student'}</div>
+          <div class="student-meta">
+            <span class="email">${s.student_email || ''}</span>
+            <span class="timestamp"> · Submitted ${ts}</span>
+          </div>
+        </div>
+      </div>
+      <div class="card-header-right">
+        <span class="grade-badge${isGraded ? ' graded' : ''}" id="badge-${s.confirmation_code}">
+          ${isGraded ? s.grade : 'Not graded'}
+        </span>
+        <span class="code-tag">${s.confirmation_code}</span>
+        <span class="expand-hint">View submission <span class="chevron" id="chevron-${s.confirmation_code}">▼</span></span>
+      </div>
+    </div>
+    <div class="card-body" id="body-${s.confirmation_code}">
+      <div class="card-body-inner">
+        <div class="responses-grid">
+          ${QUESTIONS.map(q => {
+            const ans = (s.answers && s.answers[q.key]) || '';
+            const empty = !ans.trim();
+            return `
+              <div class="response-item">
+                <div class="response-q-label">${q.label}</div>
+                <div class="response-q-text">${q.text}</div>
+                <div class="response-answer${empty ? ' no-response' : ''}">${empty ? '(No response)' : ans}</div>
+              </div>`;
+          }).join('')}
+        </div>
+        <div class="grading-panel">
+          <div>
+            <div class="grading-label">Grade</div>
+            <input class="grade-input" type="text" id="grade-${s.confirmation_code}"
+              placeholder="e.g. 92 / 100" value="${s.grade || ''}"/>
+          </div>
+          <div>
+            <div class="grading-label">Instructor Notes</div>
+            <textarea class="notes-input" id="notes-${s.confirmation_code}"
+              placeholder="Add feedback or notes…">${s.notes || ''}</textarea>
+          </div>
+        </div>
+        <div class="grading-actions">
+          <button class="save-btn" id="savebtn-${s.confirmation_code}"
+            onclick="saveGrade('${s.confirmation_code}')">Save Grade & Notes</button>
+          <span class="save-confirm" id="confirm-${s.confirmation_code}">✓ Saved</span>
+          <span class="save-error" id="error-${s.confirmation_code}">⚠ Error saving — try again</span>
+        </div>
+      </div>
+    </div>`;
+
+  return card;
+}
+
+// ══════════════════════════════════════════════════════
+// TOGGLE CARD
+// ══════════════════════════════════════════════════════
+function toggleCard(code) {
+  document.getElementById(`body-${code}`).classList.toggle('open');
+  document.getElementById(`chevron-${code}`).classList.toggle('open');
+}
+
+// ══════════════════════════════════════════════════════
+// SAVE GRADE
+// ══════════════════════════════════════════════════════
+async function saveGrade(code) {
+  const grade   = document.getElementById(`grade-${code}`).value.trim();
+  const notes   = document.getElementById(`notes-${code}`).value.trim();
+  const btn     = document.getElementById(`savebtn-${code}`);
+  const confirm = document.getElementById(`confirm-${code}`);
+  const errEl   = document.getElementById(`error-${code}`);
+
+  btn.disabled = true;
+  btn.textContent = 'Saving…';
+  confirm.classList.remove('show');
+  errEl.classList.remove('show');
+
+  try {
+    const url = `${APPS_SCRIPT_URL}?action=saveGrade&lab=${currentLab}&code=${encodeURIComponent(code)}&grade=${encodeURIComponent(grade)}&notes=${encodeURIComponent(notes)}`;
+    const res  = await fetch(url);
+    const data = await res.json();
+
+    if (!data.success) throw new Error(data.error || 'Save failed');
+
+    // Update badge
+    const badge = document.getElementById(`badge-${code}`);
+    if (grade) {
+      badge.textContent = grade;
+      badge.classList.add('graded');
+    } else {
+      badge.textContent = 'Not graded';
+      badge.classList.remove('graded');
+    }
+
+    // Update cache
+    if (submissionsCache[currentLab]) {
+      const s = submissionsCache[currentLab].find(x => x.confirmation_code === code);
+      if (s) { s.grade = grade; s.notes = notes; }
+    }
+
+    // Update graded count
+    const gradedCount = submissionsCache[currentLab]
+      ? submissionsCache[currentLab].filter(s => s.grade).length
+      : 0;
+    const statEl = document.getElementById('stat-graded');
+    if (statEl) statEl.textContent = gradedCount;
+
+    confirm.classList.add('show');
+    setTimeout(() => confirm.classList.remove('show'), 2500);
+
+  } catch (err) {
+    errEl.classList.add('show');
+    setTimeout(() => errEl.classList.remove('show'), 3000);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Save Grade & Notes';
+  }
+}
+
+// ══════════════════════════════════════════════════════
+// DISMISS HINT
+// ══════════════════════════════════════════════════════
+function dismissHint() {
+  hintDismissed = true;
+  const el = document.getElementById('hint-banner');
+  if (el) el.remove();
+}
+</script>
+</body>
+</html>

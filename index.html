@@ -7,6 +7,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
   <style>
     :root {
+	    /*dark-teal was #1A535C, #1a445c*/
       --dark-teal:  #1a495c;
       --bright-teal:#4ECDC4;
       --coral:      #FF6B6B;
@@ -94,6 +95,17 @@
     @keyframes spin { to { transform: rotate(360deg); } }
     .state-line { width: 40px; height: 2px; background: var(--border); border-radius: 2px; }
     .state-week { font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--bright-teal); font-weight: 600; }
+
+    /* ── FILTER BAR ── */
+    .filter-bar { padding: 12px 40px; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .filter-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-right: 2px; }
+    .filter-btn { font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 500; padding: 6px 14px; border-radius: 20px; border: 1.5px solid var(--border); background: var(--surface); color: var(--muted); cursor: pointer; transition: all 0.15s; }
+    .filter-btn:hover { border-color: var(--bright-teal); color: var(--dark-teal); }
+    .filter-btn.active { background: var(--dark-teal); color: #fff; border-color: var(--dark-teal); font-weight: 600; }
+    .filter-divider { width: 1px; height: 20px; background: var(--border); margin: 0 4px; }
+    .sort-select { font-family: 'Inter', sans-serif; font-size: 12.5px; padding: 6px 12px; border-radius: 20px; border: 1.5px solid var(--border); background: var(--surface); color: var(--muted); cursor: pointer; outline: none; transition: border-color 0.15s; }
+    .sort-select:focus, .sort-select:hover { border-color: var(--bright-teal); color: var(--dark-teal); }
+    .no-results { padding: 40px; text-align: center; color: var(--muted); font-size: 14px; }
 
     /* ── SUBMISSIONS ── */
     .submissions-area { padding: 20px 40px 40px; display: flex; flex-direction: column; gap: 14px; }
@@ -373,11 +385,26 @@ function renderLab(lab, submissions) {
       </div>
     </div>
     ${!hintDismissed ? `
-    <div class="hint-banner" id="hint-banner">
+    <div class="hint-banner" style="margin-bottom: 1rem;" id="hint-banner">
       <span>💡</span>
       <span>Click on any student row to expand their full submission. Enter a grade and notes at the bottom of each card, then click Save.</span>
       <button class="hint-dismiss" onclick="dismissHint()">×</button>
     </div>` : ''}
+    <div class="filter-bar">
+      <span class="filter-label">Show</span>
+      <button class="filter-btn active" id="filter-all"      onclick="setFilter('all')">All</button>
+      <button class="filter-btn"        id="filter-ungraded" onclick="setFilter('ungraded')">Not Graded</button>
+      <button class="filter-btn"        id="filter-graded"   onclick="setFilter('graded')">Graded</button>
+      <div class="filter-divider"></div>
+      <span class="filter-label">Sort by</span>
+      <select class="sort-select" id="sort-select" onchange="applyFilterSort()">
+        <option value="submitted">Submission Date</option>
+        <option value="alpha">Name A → Z</option>
+        <option value="alpha-desc">Name Z → A</option>
+        <option value="ungraded-first">Ungraded First</option>
+        <option value="graded-first">Graded First</option>
+      </select>
+    </div>
     <div class="submissions-area" id="submissions-area"></div>`;
 
   if (submissions.length === 0) {
@@ -526,6 +553,53 @@ async function saveGrade(code) {
     btn.disabled = false;
     btn.textContent = 'Save Grade & Notes';
   }
+}
+
+// ══════════════════════════════════════════════════════
+// FILTER & SORT
+// ══════════════════════════════════════════════════════
+let currentFilter = 'all';
+
+function setFilter(filter) {
+  currentFilter = filter;
+  ['all', 'ungraded', 'graded'].forEach(f => {
+    const btn = document.getElementById('filter-' + f);
+    if (btn) btn.classList.toggle('active', f === filter);
+  });
+  applyFilterSort();
+}
+
+function applyFilterSort() {
+  const sortVal = document.getElementById('sort-select')?.value || 'submitted';
+  const subs    = submissionsCache[currentLab] || [];
+
+  // Filter
+  let filtered = subs.filter(s => {
+    if (currentFilter === 'graded')   return !!s.grade;
+    if (currentFilter === 'ungraded') return !s.grade;
+    return true;
+  });
+
+  // Sort
+  filtered = [...filtered].sort((a, b) => {
+    if (sortVal === 'alpha')          return (a.student_name || '').localeCompare(b.student_name || '');
+    if (sortVal === 'alpha-desc')     return (b.student_name || '').localeCompare(a.student_name || '');
+    if (sortVal === 'ungraded-first') return (!!a.grade) - (!!b.grade);
+    if (sortVal === 'graded-first')   return (!!b.grade) - (!!a.grade);
+    // default: submission date (original order)
+    return 0;
+  });
+
+  const area = document.getElementById('submissions-area');
+  if (!area) return;
+  area.innerHTML = '';
+
+  if (filtered.length === 0) {
+    area.innerHTML = '<div class="no-results">No submissions match this filter.</div>';
+    return;
+  }
+
+  filtered.forEach(s => area.appendChild(buildCard(s)));
 }
 
 // ══════════════════════════════════════════════════════
